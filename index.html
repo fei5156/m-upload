@@ -1,0 +1,462 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <style>
+    .container{
+            display: block;
+            width: 100%;
+            margin: 20px auto;
+        }
+        .fileImg{
+            margin: 0 auto;
+            display: block;
+            height: 200px;
+            width: 300px;
+            border:1px dashed #409EFF;
+            position: relative;
+            border-radius: 10px;
+        }
+        .fileImg:after{
+            position: absolute;
+            content: '点击上传';
+            transform: translate(-50%,-50%);
+            left: 50%;
+            top: 50%;
+            color: #409EFF;
+            text-align: center;
+        }
+        #file{
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+        }
+        #progressBar{
+            margin: 0 auto;
+            margin-top: 10px;
+            border-radius: 5px;
+            width: 300px;
+            height: 25px;
+            border: 1px solid #409EFF;
+        }
+        .progress{
+            display: block;
+            margin: 0 auto;
+            width: 0%;
+            height: 100%;
+            background-color: #409EFF;
+            text-align: center;
+        }
+        .allUpload{
+            margin: 0 auto;
+            margin-top: 10px;
+            background: #409EFF;
+            color: #fff;
+            text-align: center;
+            height: 30px;
+            line-height: 30px;
+            width: 300px;
+        }
+</style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="fileImg" id="fileImg">
+      <input type="file" name="myfile[]" id="file" accept=“image/*” multiple="multiple" />
+    </div>
+    <div id="status"></div>
+    <div id="imgList"></div>
+    <div id="progressBar">
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="allUpload" id="allUpload">统一上传</div>
+
+
+
+
+  </div>
+
+  <script>
+    // 全局对象，不同function使用传递数据
+    const imgFile = {};
+    let formDataList = []
+
+
+    var fileId = document.getElementById('file')
+    var fileImg = document.getElementById('fileImg')
+    var progress = document.getElementById('progress')
+    var allUpload = document.getElementById('allUpload')
+
+    var fileList = {}
+    allUpload.addEventListener('click', function (e) {
+      // 单独的图片上传
+      var formData = new FormData()
+      // 自定义formData中的内容
+      for (let i = 0; i < fileList.length; i++) {
+        formData.append('file[]', fileList[i])
+      }
+
+      const xhr = new XMLHttpRequest()
+      // 进度监听
+      xhr.upload.addEventListener('progress', (e) => {
+        console.log('进度监听')
+        console.log(e.loaded / e.total)
+        console.log('----')
+        var divStatus = document.getElementById("status");
+        if (event.lengthComputable) {
+          divStatus.innerHTML = "Recived" + event.loaded + " of " + event.total + " bytes";
+        }
+      }, false)
+      xhr.addEventListener('error', (e) => {
+        console.log('上传失败', e)
+
+      }, false)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          console.log(xhr)
+          if (xhr.status === 200) {
+            // 上传成功
+            console.log('上传成功')
+          } else {
+            console.log('上传失败')
+            // 上传失败
+          }
+        }
+      };
+      xhr.open('POST', 'http://localhost:8081/index.php', true)
+      xhr.send(formData)
+    })
+
+
+    // 基于 php  的上传
+    fileId.addEventListener('change', function (e) {
+      fileList = e.target.files
+    })
+
+
+    // 基于 nodejs 单图片 分步骤上传
+
+    // fileId.addEventListener('change', function (e) {
+    //   fileList = e.target.files
+    //   if (e.target.files.length > 1) {
+    //     for (let i = 0; i < e.target.files.length; i++) {
+    //       var j = i
+    //       progress.style.width = ((j + 1) / e.target.files.length) * 100 + '%'
+    //       progress.innerText = ((j + 1) / e.target.files.length) * 100 + '%'
+    //       // console.log('e.target.files[j]', e.target.files[j])
+    //       handleInputChange(e.target.files[j])
+    //     }
+    //   } else {
+    //     handleInputChange(e.target.files[0])
+    //   }
+    // })
+
+
+
+
+
+
+
+
+    function handleInputChange(event) {
+
+      console.log('handleInputChange')
+      console.log(event)
+      formData.append('file', event)
+      // 获取当前选中的文件
+      const file = event
+      const imgMasSize = 1024 * 1024 * 10 // 10MB
+      const imgMaxSize = 1024 * 1024 * 100
+
+      // 检查文件类型
+      // if (['jpeg', 'png', 'gif', 'jpg', 'JPG'].indexOf(file.type.split("/")[1]) < 0) {
+      //     // 自定义报错方式
+      //     // Toast.error("文件类型仅支持 jpeg/png/gif！", 2000, undefined, false);
+      //     alert('只能上传图片')
+      //     return
+      // }
+
+      // 文件大小限制
+      // if (file.size > imgMasSize) {
+      //     // 文件大小自定义限制
+      //     // Toast.error("文件大小不能超过10MB！", 2000, undefined, false);
+      //     return
+      // }
+
+      // 判断是否是ios
+      // if (!!window.navigator.userAgent.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)) {
+      //     // iOS
+      //     transformFileToFormData(file)
+      //     return
+      // }
+
+      // 图片压缩之旅
+      transformFileToFormData(file)
+    }
+
+
+
+
+
+    // 将File append进 FormData
+    function transformFileToFormData(file) {
+      console.log('transformFileToFormData')
+      var formData = new FormData()
+      // 自定义formData中的内容
+      // type
+      formData.append('type', file.type)
+      // size
+      formData.append('size', file.size || "image/jpeg")
+      // name
+      formData.append('name', file.name)
+      // formData.append('name', 'myfile[]')
+      // lastModifiedDate
+      formData.append('lastModifiedDate', file.lastModifiedDate)
+      // append 文件
+      formData.append('file', file)
+      // 上传图片
+
+
+
+
+
+      console.log('formData', formData)
+      formDataList.push(formData)
+    }
+
+
+    function processData(e) {
+      // 这里使用二进制方式处理dataUrl
+      const binaryString = window.atob(e.split(',')[1]) // base64 截取尾部
+      const arrayBuffer = new ArrayBuffer(binaryString.length)
+      const intArray = new Uint8Array(arrayBuffer)
+      // const imgFile = this.imgFile
+
+      for (let i = 0, j = binaryString.length; i < j; i++) {
+        intArray[i] = binaryString.charCodeAt(i)
+      }
+
+      const data = [intArray]
+
+      let blob;
+
+      // console.log('字节流之前的数据转换')
+      // console.log('binaryString:', binaryString)
+      // console.log('arrayBuffer:', arrayBuffer)
+      // console.log('intArray', intArray)
+      // console.log('data:', data)
+
+      // console.log('已经读取了文件,开始由base64 转为流的形式')
+      // console.log('data:', data)
+
+      try {
+        blob = new Blob(data, {
+          type: imgFile.type
+        })
+      } catch (error) {
+        window.BlobBuilder = window.BlobBuilder ||
+          window.WebKitBlobBuilder ||
+          window.MozBlobBuilder ||
+          window.MSBlobBuilder
+        if (error.name === 'TypeError' && window.BlobBuilder) {
+          const builder = new BlobBuilder()
+          builder.append(arrayBuffer)
+          blob = builder.getBlob(imgFile.type)
+        } else {
+          // Toast.error("版本过低，不支持上传图片", 2000, undefined, false);
+          throw new Error('版本过低，不支持上传图片')
+        }
+      }
+
+
+      // console.log('我是blob二进制文件:', blob)
+
+
+
+      // console.log('已经读取了文件,开始由base64 转为二进制的形式')
+
+      // blob 转file
+      const fileOfBlob = new File([blob], imgFile.name); // 构建文件
+      const formData = new FormData();
+
+      // type
+      formData.append('type', imgFile.type)
+      // size
+      formData.append('size', fileOfBlob.size)
+      // name
+      formData.append('name', imgFile.name)
+      // lastModifiedDate
+      formData.append('lastModifiedDate', imgFile.lastModifiedDate)
+      // append 文件
+      formData.append('file', fileOfBlob)
+      console.log('formData', formData)
+      formDataList.push(formData)
+      // moreUploadImg(formData)
+    }
+
+
+
+    // 将file转成dataUrl
+    function transformFileToDataUrl(file) {
+      const imgCompassMaxSize = 200 * 1024; // 超过 200k 就压缩
+
+      // 存储文件相关信息
+      imgFile.type = file.type || 'image/jpeg' // 部分安卓出现获取不到type的情况
+      imgFile.size = file.size
+
+      imgFile.name = file.name
+      imgFile.lastModifiedDate = file.lastModifiedDate
+      console.log('imgFile', imgFile)
+      // 封装好的函数
+      const reader = new FileReader() // 读取缓存区的数据
+      reader.readAsDataURL(file) //将读取的内容转为base64
+      // reader.readAsText(file) //将读取的内容转为转为文本格式
+      // file转dataUrl 顺便压缩 是个异步函数，要将代码写在回调里
+      reader.onload = function (e) {
+        const result = e.target.result
+
+        if (result.length < imgCompassMaxSize) {
+          console.log('1111')
+          compress(result, processData, false) // 图片不压缩
+        } else {
+          console.log('2222')
+          compress(result, processData) // 图片压缩
+        }
+      };
+    }
+    // 使用canvas绘制图片并压缩
+    function compress(dataURL, callback, shouldCompress = true) {
+      const img = new window.Image()
+
+      img.width = 100
+      img.height = 100
+      img.src = dataURL
+
+
+      img.onerror = function (e) {
+        console.log('构建虚拟压缩文件出现错误', e)
+      }
+
+      img.onload = function () {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        canvas.width = img.width
+        canvas.height = img.height
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+        let compressedDataUrl
+
+        if (shouldCompress) {
+          compressedDataUrl = canvas.toDataURL(imgFile.type, 0.2)
+        } else {
+          compressedDataUrl = canvas.toDataURL(imgFile.type, 1)
+        }
+
+        // console.log('compressedDataUrl', compressedDataUrl)
+        // processData(compressedDataUrl)
+        // console.log('compressedDataUrl', compressedDataUrl)
+
+
+
+
+
+        // 把base64 显示的图 放到 dom 显示
+        document.getElementById('imgList').appendChild(img)
+
+        callback(compressedDataUrl);
+      }
+    }
+
+
+    // 上传图片
+    function uploadImg(formData) {
+      const xhr = new XMLHttpRequest()
+
+      // 进度监听
+      xhr.upload.addEventListener('progress', (e) => {
+        console.log('进度监听')
+        console.log(e.loaded / e.total)
+        console.log('----')
+        var divStatus = document.getElementById("status");
+        if (event.lengthComputable) {
+          divStatus.innerHTML = "Recived" + event.loaded + " of " + event.total + " bytes";
+        }
+      }, false)
+      // 加载监听
+      // xhr.addEventListener('load', ()=>{console.log("加载中");}, false);
+      // 错误监听
+      xhr.addEventListener('error', (e) => {
+        console.log('上传失败', e)
+
+      }, false)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          // const result = JSON.parse(xhr.responseText);
+          console.log(xhr)
+          if (xhr.status === 200) {
+            // 上传成功
+            console.log('上传成功')
+
+          } else {
+            console.log('上传失败')
+            // 上传失败
+          }
+        }
+      };
+      console.log('formData', formData)
+      // xhr.open('POST', 'http://localhost:6677/users/upload', true)
+      xhr.open('POST', 'http://localhost:8081/index.php', true)
+      xhr.send(formData)
+    }
+
+    function moreUploadImg(formData) {
+      console.log('formData', formData)
+      console.log('moreUploadImg')
+      const xhr = new XMLHttpRequest()
+
+      // 进度监听
+      xhr.upload.addEventListener('progress', (e) => {
+        console.log('进度监听')
+        console.log(e.loaded / e.total)
+        console.log('----')
+        var divStatus = document.getElementById("status");
+        if (event.lengthComputable) {
+          divStatus.innerHTML = "Recived" + event.loaded + " of " + event.total + " bytes";
+        }
+      }, false)
+      // 加载监听
+      // xhr.addEventListener('load', ()=>{console.log("加载中");}, false);
+      // 错误监听
+      xhr.addEventListener('error', (e) => {
+        console.log('上传失败', e)
+
+      }, false)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          // const result = JSON.parse(xhr.responseText);
+          console.log(xhr)
+          if (xhr.status === 200) {
+            // 上传成功
+            console.log('上传成功')
+
+          } else {
+            console.log('上传失败')
+            // 上传失败
+          }
+        }
+      };
+      console.log('formData', formData)
+      // xhr.open('POST', 'http://localhost:6677/users/moreUpload', true)
+      xhr.open('POST', 'http://localhost:8081/index.php', true)
+      xhr.send([formData, formData])
+    }
+  </script>
+</body>
+
+</html>
